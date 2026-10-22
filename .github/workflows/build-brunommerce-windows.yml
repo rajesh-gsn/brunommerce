@@ -1,0 +1,64 @@
+name: Brunommerce Windows Build
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of the build, e.g. 2.0.0-bm.2'
+        required: true
+
+jobs:
+  build:
+    name: Windows installer (x64)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Build web app
+        shell: pwsh
+        run: npm run build --workspace=packages/bruno-app
+
+      - name: Prepare web bundle for Electron
+        shell: pwsh
+        run: |
+          $web = 'packages/bruno-electron/web'
+          if (Test-Path $web) { Remove-Item $web -Recurse -Force }
+          New-Item -ItemType Directory $web | Out-Null
+          Copy-Item 'packages/bruno-app/dist/*' $web -Recurse
+          Get-ChildItem "$web/*.html" | ForEach-Object {
+            (Get-Content $_.FullName -Raw) -replace '/static', './static' | Set-Content $_.FullName -NoNewline
+          }
+          Get-ChildItem "$web/static/css/*.css" | ForEach-Object {
+            (Get-Content $_.FullName -Raw) -replace '/static/font', '../../static/font' | Set-Content $_.FullName -NoNewline
+          }
+          Get-ChildItem $web -Recurse -Filter *.map | Remove-Item
+
+      - name: Build installer
+        shell: pwsh
+        working-directory: packages/bruno-electron
+        env:
+          BRUNOMMERCE_VERSION: ${{ inputs.version }}
+        run: npx electron-builder --win --config electron-builder-tester-config.js
+
+      - name: Write checksums
+        shell: pwsh
+        working-directory: packages/bruno-electron/out
+        run: |
+          Get-ChildItem *.exe | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content SHA256SUMS-windows.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brunommerce-windows-${{ inputs.version }}
+          path: |
+            packages/bruno-electron/out/*.exe
+            packages/bruno-electron/out/SHA256SUMS-windows.txt
+          if-no-files-found: error

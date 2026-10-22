@@ -1,4 +1,4 @@
-// macOS build config for Brunommerce testers, used by scripts/build-brunommerce-mac.sh.
+// Build config for Brunommerce testers, used by scripts/build-brunommerce-mac.sh and the Brunommerce Windows build workflow.
 // Drops the upstream signing identity and notarization, which need credentials this fork does not have;
 // the script signs the app ad hoc itself because electron-builder cannot.
 const config = require('./electron-builder-config');
@@ -19,5 +19,10 @@ module.exports = {
       { target: 'dmg', arch: ['arm64'] },
       { target: 'zip', arch: ['arm64'] }
     ]
+  },
+  win: {
+    ...config.win,
+    artifactName: 'brunommerce_${version}_${arch}_win.${ext}',
+    target: [{ target: 'nsis', arch: ['x64'] }]
   }
 };
