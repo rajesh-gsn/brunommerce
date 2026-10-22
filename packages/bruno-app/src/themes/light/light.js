@@ -1,10 +1,10 @@
 import { rgba } from 'polished';
 export const palette = {
   primary: {
-    SOLID: 'hsl(33, 80%, 46%)',
-    TEXT: 'hsl(33, 67%, 45%)',
-    STRONG: 'hsl(33, 67%, 50%)',
-    SUBTLE: 'hsl(33, 69%, 56%)'
+    SOLID: 'hsl(257, 66%, 52%)',
+    TEXT: 'hsl(257, 62%, 46%)',
+    STRONG: 'hsl(257, 66%, 56%)',
+    SUBTLE: 'hsl(257, 70%, 66%)'
   },
   hues: {
     RED: 'hsl(8,   60%, 52%)',
@@ -23,7 +23,7 @@ export const palette = {
     PINK: 'hsl(328, 50%, 48%)'
   },
   system: {
-    CONTROL_ACCENT: '#b96f1d'
+    CONTROL_ACCENT: '#6a3fd3'
   },
   background: {
     BASE: '#ffffff',
