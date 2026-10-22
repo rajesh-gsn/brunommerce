@@ -1,5 +1,6 @@
 #!/bin/bash
 # Builds an ad-hoc signed Brunommerce macOS installer (dmg + zip, arm64) into packages/bruno-electron/out.
+# Set BRUNOMMERCE_VERSION (e.g. 2.0.0-bm.1) to version the build; a SHA256SUMS.txt is written next to the installers.
 # Prerequisite: the shared packages are built and `npm run sandbox:bundle-libraries --workspace=packages/bruno-js` has run.
 set -euo pipefail
 
@@ -24,4 +25,5 @@ codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 
 npx electron-builder --mac --prepackaged "$APP" --config electron-builder-tester-config.js
-ls -lh out/*.dmg out/*.zip
+(cd out && shasum -a 256 *.dmg *.zip > SHA256SUMS.txt)
+ls -lh out/*.dmg out/*.zip out/SHA256SUMS.txt
