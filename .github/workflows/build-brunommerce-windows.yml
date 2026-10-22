@@ -52,7 +52,8 @@ jobs:
       - name: Build installer
         shell: pwsh
         working-directory: packages/bruno-electron
-        run: npx electron-builder --win --config electron-builder-tester-config.js
+        # --publish never: with a tag checked out, electron-builder would otherwise try to upload to GitHub and need a token
+        run: npx electron-builder --win --publish never --config electron-builder-tester-config.js
 
       - name: Write checksums
         shell: pwsh
