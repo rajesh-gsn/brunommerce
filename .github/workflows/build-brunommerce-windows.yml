@@ -1,5 +1,8 @@
 name: Brunommerce Windows Build
+# Pushing a tag such as v2.0.0-bm.2 builds that version
 on:
+  push:
+    tags: ['v*-bm.*']
   workflow_dispatch:
     inputs:
       version:
@@ -15,6 +18,12 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          $version = '${{ inputs.version || github.ref_name }}' -replace '^v', ''
+          "BRUNOMMERCE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -43,8 +52,6 @@ jobs:
       - name: Build installer
         shell: pwsh
         working-directory: packages/bruno-electron
-        env:
-          BRUNOMMERCE_VERSION: ${{ inputs.version }}
         run: npx electron-builder --win --config electron-builder-tester-config.js
 
       - name: Write checksums
@@ -57,7 +64,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: brunommerce-windows-${{ inputs.version }}
+          name: brunommerce-windows-${{ env.BRUNOMMERCE_VERSION }}
           path: |
             packages/bruno-electron/out/*.exe
             packages/bruno-electron/out/SHA256SUMS-windows.txt
