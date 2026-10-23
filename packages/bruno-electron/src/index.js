@@ -26,6 +26,12 @@ if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
   app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
 }
 
+// Brunommerce keeps its own name and data folder, so its settings and single-instance lock never collide with an installed Bruno
+if (!isDev) {
+  app.setName('Brunommerce');
+  app.setPath('userData', path.join(app.getPath('appData'), 'Brunommerce'));
+}
+
 // Command line switches
 if (os.platform() === 'linux') {
   // Use portal version 4 that supports current_folder option
