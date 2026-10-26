@@ -59,6 +59,15 @@ jobs:
         # --publish never: with a tag checked out, electron-builder would otherwise try to upload to GitHub and need a token
         run: npx electron-builder --win --publish never --config electron-builder-tester-config.js
 
+      - name: Check the license notices are in the installer
+        shell: pwsh
+        working-directory: packages/bruno-electron/out/win-unpacked/resources
+        run: |
+          $expected = 'LICENSE-Bruno.md', 'LICENSE-Electron.txt', 'LICENSES.chromium.html', 'THIRD_PARTY_NOTICES.txt'
+          $missing = $expected | Where-Object { -not (Test-Path "legal/$_") }
+          if ($missing) { throw "Missing license files: $($missing -join ', ')" }
+          Get-ChildItem legal | Format-Table Name, Length
+
       - name: Write checksums
         shell: pwsh
         working-directory: packages/bruno-electron/out
