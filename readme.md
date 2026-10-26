@@ -45,7 +45,7 @@ Verify a download with `shasum -a 256 <file>` against `SHA256SUMS.txt` on the re
 
 ## Build from source
 
-Brunommerce is built like Bruno (see [contributing.md](contributing.md)), on the `brand/brunommerce` branch. Prerequisites: Node 22, `npm i --legacy-peer-deps`, the shared packages built (`npm run build:bruno-common` and the other `build:*` scripts) and `npm run sandbox:bundle-libraries --workspace=packages/bruno-js`.
+Brunommerce is built like Bruno (see [contributing.md](contributing.md)), on the `brunommerce` branch. Prerequisites: Node 22, `npm i --legacy-peer-deps`, the shared packages built (`npm run build:bruno-common` and the other `build:*` scripts) and `npm run sandbox:bundle-libraries --workspace=packages/bruno-js`.
 
 ```bash
 npm run dev                                   # run the app (use DISABLE_SINGLE_INSTANCE=true next to an installed Bruno)
