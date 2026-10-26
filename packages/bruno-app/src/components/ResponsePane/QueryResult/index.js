@@ -103,7 +103,7 @@ const QueryResult = ({
   filterExpanded,
   onFilterChange,
   onFilterExpandChange,
-  onSelectionChange,
+  timestampChips,
   docKey
 }) => {
   const contentType = getContentType(headers);
@@ -217,7 +217,7 @@ const QueryResult = ({
                 collection={collection}
                 disableRunEventListener={disableRunEventListener}
                 displayedTheme={displayedTheme}
-                onSelectionChange={onSelectionChange}
+                timestampChips={timestampChips}
                 docKey={docKey}
               />
             </div>

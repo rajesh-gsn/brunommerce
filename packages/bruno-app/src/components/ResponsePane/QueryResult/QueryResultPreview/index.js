@@ -10,6 +10,7 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import { useTimestampChips } from '../useTimestampChips';
 import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 
 const QueryResultPreview = ({
@@ -24,12 +25,13 @@ const QueryResultPreview = ({
   previewMode,
   disableRunEventListener,
   displayedTheme,
-  onSelectionChange,
+  timestampChips,
   docKey
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const editorRef = useRef(null);
+  useTimestampChips(editorRef, { enabled: timestampChips && selectedTab === 'editor', value: formattedData });
   const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
 
   const onRun = () => {
@@ -64,7 +66,6 @@ const QueryResultPreview = ({
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
         onLinkClick={handleResponseLinkClick}
-        onSelectionChange={onSelectionChange}
         readOnly
       />
     );

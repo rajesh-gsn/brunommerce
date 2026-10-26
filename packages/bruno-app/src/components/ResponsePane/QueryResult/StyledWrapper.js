@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -21,6 +22,21 @@ const StyledWrapper = styled.div`
     .active {
       color: ${(props) => props.theme.colors.text.yellow};
     }
+  }
+
+  /* Local-time chip shown after a timestamp in the response editor */
+  .timestamp-chip {
+    margin-left: 0.5rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    border: 1px solid ${(props) => rgba(props.theme.primary.solid, 0.3)};
+    background-color: ${(props) => rgba(props.theme.primary.solid, 0.12)};
+    color: ${(props) => props.theme.primary.text};
+    font-family: inherit;
+    font-size: 0.75em;
+    white-space: nowrap;
+    user-select: none;
+    vertical-align: middle;
   }
 
   .muted {

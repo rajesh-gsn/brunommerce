@@ -1,15 +1,14 @@
-import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconBarcode } from '@tabler/icons';
+import { IconBarcode, IconClock } from '@tabler/icons';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import LabelPane from './LabelPane';
 import ActionIcon from 'ui/ActionIcon';
 import { detectLabels } from 'utils/response/detectLabels';
 import { hasTimestamps } from 'utils/response/timestamps';
-import TimeZoneBar from './TimeZoneBar';
 import { usePersistedState } from 'hooks/usePersistedState';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -62,12 +61,8 @@ const ResponsePane = ({ item, collection }) => {
     () => response.size <= RESPONSE_SCAN_MAX_SIZE && hasTimestamps(response.data),
     [response.data, response.size]
   );
-  const [selectedText, setSelectedText] = useState('');
-  // The code editor reports its own selection; text rendered as plain DOM (the preview tabs) is read here
-  const handleDomSelection = useCallback((event) => {
-    if (event.target.closest('.CodeMirror')) return;
-    setSelectedText(window.getSelection().toString());
-  }, []);
+  // One setting for every response: chips with the local time after each timestamp
+  const [showTimestampChips, setShowTimestampChips] = usePersistedState({ key: 'response-timestamp-chips', default: true });
 
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -146,7 +141,6 @@ const ResponsePane = ({ item, collection }) => {
     }
   }, [response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
-  const dateHeader = Object.entries(response.headers ?? {}).find(([name]) => name.toLowerCase() === 'date')?.[1];
 
   const allTabs = useMemo(() => {
     return [
@@ -202,7 +196,7 @@ const ResponsePane = ({ item, collection }) => {
             filterExpanded={focusedTab?.responseFilterExpanded}
             onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
             onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
-            onSelectionChange={setSelectedText}
+            timestampChips={showTimestampChips && containsTimestamps}
           />
         );
       }
@@ -262,8 +256,6 @@ const ResponsePane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const showTimeZoneBar = !isLoading && isResponseTabActive && containsTimestamps && !(item.response?.stream ?? false);
-
   const alertsSection = !isLoading && isResponseTabActive ? (
     <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
   ) : null;
@@ -292,6 +284,16 @@ const ResponsePane = ({ item, collection }) => {
                 handleViewTabChange('editor');
               }}
             />
+            {containsTimestamps ? (
+              <ActionIcon
+                label={showTimestampChips ? 'Hide local times after timestamps' : 'Show local times after timestamps'}
+                variant={showTimestampChips ? 'filled' : 'subtle'}
+                onClick={() => setShowTimestampChips(!showTimestampChips)}
+                data-testid="response-timestamp-chips-toggle"
+              >
+                <IconClock size={16} strokeWidth={2} />
+              </ActionIcon>
+            ) : null}
             {labels.length > 0 ? (
               <ActionIcon
                 label={showLabelPane ? 'Hide label preview' : 'Show label preview'}
@@ -361,7 +363,6 @@ const ResponsePane = ({ item, collection }) => {
           className={classnames('response-tab-content', { hidden: responsePaneErrors.isCardFullPane })}
           data-testid="response-tab-content"
           onContextMenu={(event) => setAsVariable.openFromDomSelection(event, { collection, item })}
-          onMouseUp={handleDomSelection}
         >
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
@@ -375,7 +376,6 @@ const ResponsePane = ({ item, collection }) => {
             <>{renderTabPanel()}</>
           )}
         </div>
-        {showTimeZoneBar ? <TimeZoneBar selectedText={selectedText} dateHeader={dateHeader} /> : null}
       </section>
     </StyledWrapper>
   );
