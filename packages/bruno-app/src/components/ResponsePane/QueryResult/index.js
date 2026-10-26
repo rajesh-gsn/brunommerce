@@ -3,6 +3,7 @@ import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
+import { convertUtcTimestampsToLocal } from 'utils/response/localTime';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
@@ -27,6 +28,9 @@ const PREVIEW_FORMAT_OPTIONS = [
   // Raw formats
   ...RAW_FORMAT_OPTIONS
 ];
+
+// Formats whose displayed text can have its UTC timestamps shown in local time
+const LOCAL_TIME_FORMATS = ['json', 'html', 'xml', 'javascript', 'raw'];
 
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
@@ -103,6 +107,7 @@ const QueryResult = ({
   filterExpanded,
   onFilterChange,
   onFilterExpandChange,
+  localTime,
   docKey
 }) => {
   const contentType = getContentType(headers);
@@ -133,10 +138,14 @@ const QueryResult = ({
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      const formatted = formatResponse(data, dataBuffer, selectedFormat, filter);
+      return localTime && LOCAL_TIME_FORMATS.includes(selectedFormat) ? convertUtcTimestampsToLocal(formatted) : formatted;
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse, localTime]
   );
+
+  // The preview tab renders the parsed body, so it gets its own display-only copy
+  const displayData = useMemo(() => (localTime ? convertUtcTimestampsToLocal(data) : data), [data, localTime]);
 
   const handleFilterChange = (value) => {
     if (onFilterChange) {
@@ -206,7 +215,7 @@ const QueryResult = ({
             <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
-                data={data}
+                data={displayData}
                 dataBuffer={dataBuffer}
                 formattedData={formattedData}
                 item={item}

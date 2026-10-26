@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconBarcode } from '@tabler/icons';
+import { IconBarcode, IconClock } from '@tabler/icons';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import LabelPane from './LabelPane';
 import ActionIcon from 'ui/ActionIcon';
 import { detectLabels } from 'utils/response/detectLabels';
+import { hasUtcTimestamps } from 'utils/response/localTime';
 import { usePersistedState } from 'hooks/usePersistedState';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -36,8 +37,8 @@ import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
 
-// Responses above this size are not scanned for labels
-const LABEL_DETECTION_MAX_SIZE = 10 * 1024 * 1024;
+// Responses above this size are not scanned for labels or timestamps
+const RESPONSE_SCAN_MAX_SIZE = 10 * 1024 * 1024;
 
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -50,11 +51,18 @@ const ResponsePane = ({ item, collection }) => {
   const response = item.response || {};
 
   const labels = useMemo(
-    () => (response.size > LABEL_DETECTION_MAX_SIZE ? [] : detectLabels({ data: response.data, dataBuffer: response.dataBuffer })),
+    () => (response.size > RESPONSE_SCAN_MAX_SIZE ? [] : detectLabels({ data: response.data, dataBuffer: response.dataBuffer })),
     [response.data, response.dataBuffer, response.size]
   );
   const [labelPaneOpen, setLabelPaneOpen] = usePersistedState({ key: `label-pane-open-${item.uid}`, default: false });
   const showLabelPane = labelPaneOpen && labels.length > 0;
+
+  const hasTimestamps = useMemo(
+    () => response.size <= RESPONSE_SCAN_MAX_SIZE && hasUtcTimestamps(response.data),
+    [response.data, response.size]
+  );
+  // One setting for every request: once local time is wanted it stays on
+  const [localTime, setLocalTime] = usePersistedState({ key: 'response-local-time', default: false });
 
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -188,6 +196,7 @@ const ResponsePane = ({ item, collection }) => {
             filterExpanded={focusedTab?.responseFilterExpanded}
             onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
             onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
+            localTime={localTime && hasTimestamps}
           />
         );
       }
@@ -275,6 +284,16 @@ const ResponsePane = ({ item, collection }) => {
                 handleViewTabChange('editor');
               }}
             />
+            {hasTimestamps ? (
+              <ActionIcon
+                label={localTime ? 'Showing local time. Click to show times as sent' : 'Show UTC times in local timezone'}
+                variant={localTime ? 'filled' : 'subtle'}
+                onClick={() => setLocalTime(!localTime)}
+                data-testid="response-local-time-toggle"
+              >
+                <IconClock size={16} strokeWidth={2} />
+              </ActionIcon>
+            ) : null}
             {labels.length > 0 ? (
               <ActionIcon
                 label={showLabelPane ? 'Hide label preview' : 'Show label preview'}
