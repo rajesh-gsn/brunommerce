@@ -16,5 +16,7 @@ export const buildResponseLabelLocators = (page: Page) => ({
   position: () => page.getByTestId('label-position'),
   downloadZpl: () => page.getByTestId('label-download-zpl'),
   downloadPng: () => page.getByTestId('label-download-png'),
-  downloadPdf: () => page.getByTestId('label-download-pdf')
+  downloadPdf: () => page.getByTestId('label-download-pdf'),
+  embeddedImage: () => page.getByTestId('label-embedded-image'),
+  downloadImage: () => page.getByTestId('label-download-image')
 });

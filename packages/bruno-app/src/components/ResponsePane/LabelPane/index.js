@@ -7,6 +7,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
 import Select from 'ui/Select';
+import { LABEL_IMAGE_EXTENSIONS } from 'utils/response/detectLabels';
 import PdfPreview from '../PdfPreview';
 import LabelDownloadButton from './LabelDownloadButton';
 import { useZplLabelImage } from './useZplLabelImage';
@@ -71,11 +72,40 @@ const ZplLabel = ({ zpl, fileBase }) => {
   );
 };
 
+const LabelBody = ({ label, fileBase }) => {
+  if (label.kind === 'pdf') {
+    return (
+      <>
+        <div className="label-toolbar flex items-center justify-end px-3 py-2">
+          <LabelDownloadButton tooltip="Download PDF" fileName={`${fileBase}.pdf`} content={label.content} encoding="base64" testId="label-download-pdf" />
+        </div>
+        <div className="flex-1 overflow-auto" data-testid="label-pdf-body">
+          <PdfPreview dataBuffer={label.content} />
+        </div>
+      </>
+    );
+  }
+
+  if (label.kind === 'image') {
+    return (
+      <>
+        <div className="label-toolbar flex items-center justify-end px-3 py-2">
+          <LabelDownloadButton tooltip="Download image" fileName={`${fileBase}.${LABEL_IMAGE_EXTENSIONS[label.mime]}`} content={label.content} encoding="base64" testId="label-download-image" />
+        </div>
+        <div className="flex-1 overflow-auto p-3" data-testid="label-image-body">
+          <img className="label-image" src={`data:${label.mime};base64,${label.content}`} alt="Embedded image" data-testid="label-embedded-image" />
+        </div>
+      </>
+    );
+  }
+
+  return <ZplLabel zpl={label.content} fileBase={fileBase} />;
+};
+
 const LabelPane = ({ labels }) => {
   const [index, setIndex] = useState(0);
   // A re-sent request can return fewer labels than the page the user was on
   const current = Math.min(index, labels.length - 1);
-  const label = labels[current];
   const fileBase = `label-${current + 1}`;
 
   return (
@@ -91,18 +121,7 @@ const LabelPane = ({ labels }) => {
           </ActionIcon>
         </div>
       ) : null}
-      {label.kind === 'pdf' ? (
-        <>
-          <div className="label-toolbar flex items-center justify-end px-3 py-2">
-            <LabelDownloadButton tooltip="Download PDF" fileName={`${fileBase}.pdf`} content={label.content} encoding="base64" testId="label-download-pdf" />
-          </div>
-          <div className="flex-1 overflow-auto" data-testid="label-pdf-body">
-            <PdfPreview dataBuffer={label.content} />
-          </div>
-        </>
-      ) : (
-        <ZplLabel key={current} zpl={label.content} fileBase={fileBase} />
-      )}
+      <LabelBody key={current} label={labels[current]} fileBase={fileBase} />
     </StyledWrapper>
   );
 };

@@ -39,6 +39,8 @@ const RESPONSES: Record<string, [string, string]> = {
   '/pdf': ['application/pdf', PDF],
   '/pdf-json': ['application/json', JSON.stringify({ labels: [{ content: toBase64(PDF) }] })],
   '/pdf-xml': ['application/soap+xml', `<?xml version="1.0"?><soap:Envelope><soap:Body><GraphicImage>${toBase64(PDF)}</GraphicImage></soap:Body></soap:Envelope>`],
+  '/image-json': ['application/json', JSON.stringify({ qr: ONE_PIXEL_PNG.toString('base64') })],
+  '/image-svg': ['application/json', JSON.stringify({ qr: '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><rect width="12" height="12"/></svg>' })],
   '/plain-json': ['application/json', JSON.stringify({ ok: true })],
   '/plain-xml': ['application/xml', '<note><to>Bruno</to><body>Nothing to print here at all.</body></note>']
 };
@@ -289,6 +291,37 @@ test.describe('Response label pane', () => {
       const pdfPath = await chooseSavePath('saved.pdf');
       await locators.downloadPdf().click();
       await expect.poll(() => fs.existsSync(pdfPath) && fs.readFileSync(pdfPath, 'latin1')).toBe(PDF);
+    });
+  });
+  test('previews an image embedded in a response, such as a QR code, and saves it', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page, locators } = await launchWithRequests(
+      { launchElectronApp, createTmpDir },
+      { 'image-in-json': '/image-json', 'svg-in-json': '/image-svg' }
+    );
+    const saveDir = await createTmpDir('label-image-downloads');
+
+    await test.step('A base64 PNG shows as an image', async () => {
+      await openRequest(page, COLLECTION_NAME, 'image-in-json');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.embeddedImage()).toBeVisible();
+      await expect(locators.embeddedImage()).toHaveJSProperty('naturalWidth', 1);
+    });
+
+    await test.step('It can be saved as the original file', async () => {
+      const target = path.join(saveDir, 'saved.png');
+      await app.evaluate(({ dialog }: any, filePath: string) => {
+        dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+      }, target);
+      await locators.downloadImage().click();
+      await expect.poll(() => fs.existsSync(target) && fs.readFileSync(target)).toEqual(ONE_PIXEL_PNG);
+    });
+
+    await test.step('Inline SVG markup shows as an image too', async () => {
+      await openRequest(page, COLLECTION_NAME, 'svg-in-json');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.embeddedImage()).toHaveJSProperty('naturalWidth', 12);
     });
   });
 });

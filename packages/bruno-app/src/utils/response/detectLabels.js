@@ -6,6 +6,20 @@ const MAX_SCAN_DEPTH = 6;
 const MAX_STRING_LENGTH = 10 * 1024 * 1024;
 const MIN_BASE64_LENGTH = 16;
 
+// Image types a browser can show, with the extension to save them under
+export const LABEL_IMAGE_EXTENSIONS = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+  'image/bmp': 'bmp',
+  'image/svg+xml': 'svg'
+};
+
+const DATA_URL_IMAGE_REGEX = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/\s]+={0,2})$/i;
+const SVG_REGEX = /^\s*(?:<\?xml[^>]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)?(?:<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i;
+
 const ZPL_START_REGEX = /\^XA/gi;
 const ZPL_END_REGEX = /\^XZ/gi;
 const BASE64_REGEX = /^[A-Za-z0-9+/\s]+={0,2}$/;
@@ -33,6 +47,8 @@ const extractZplLabels = (text) => {
   return labels;
 };
 
+const toImage = (mime, base64) => (mime in LABEL_IMAGE_EXTENSIONS ? [{ kind: 'image', mime, content: base64 }] : []);
+
 const detectInString = (str) => {
   if (typeof str !== 'string' || str.length === 0 || str.length > MAX_STRING_LENGTH) {
     return [];
@@ -43,12 +59,25 @@ const detectInString = (str) => {
     return zpl;
   }
 
+  const dataUrl = str.match(DATA_URL_IMAGE_REGEX);
+  if (dataUrl) {
+    return toImage(dataUrl[1].toLowerCase(), dataUrl[2].replace(/\s/g, ''));
+  }
+
+  if (SVG_REGEX.test(str)) {
+    return toImage('image/svg+xml', Buffer.from(str, 'utf8').toString('base64'));
+  }
+
   if (str.length < MIN_BASE64_LENGTH || !BASE64_REGEX.test(str)) {
     return [];
   }
 
-  if (detectContentTypeFromBase64(str) === 'application/pdf') {
+  const type = detectContentTypeFromBase64(str);
+  if (type === 'application/pdf') {
     return [{ kind: 'pdf', content: str }];
+  }
+  if (type?.startsWith('image/')) {
+    return toImage(type, str.replace(/\s/g, ''));
   }
 
   return extractZplLabels(Buffer.from(str, 'base64').toString('utf8'));
@@ -78,7 +107,7 @@ const collectStrings = (value, out, budget, depth = 0) => {
   budget.nodes--;
 
   if (typeof value === 'string') {
-    if (value.trimStart().startsWith('<') && value.length <= MAX_STRING_LENGTH) {
+    if (value.trimStart().startsWith('<') && !SVG_REGEX.test(value) && value.length <= MAX_STRING_LENGTH) {
       out.push(...extractElementTexts(value));
     } else {
       out.push(value);
@@ -91,18 +120,23 @@ const collectStrings = (value, out, budget, depth = 0) => {
 };
 
 /**
- * Detects printable labels (PDF or ZPL) in a response.
+ * Detects printable labels (PDF or ZPL) and embedded images, such as a QR code, in a response.
  *
- * Looks at the raw body first (PDF magic bytes, ZPL text) and then at string values
- * inside a parsed JSON body or the element texts of an XML body (plain ZPL, or
- * base64-encoded PDF/ZPL).
+ * Looks at the raw body first (PDF magic bytes) and then at string values inside a parsed JSON body or the
+ * element texts of an XML body: plain ZPL, base64-encoded PDF, ZPL or image, data URLs and inline SVG.
+ * A response that is itself an image is left to the regular image preview.
  *
  * @param {{ data: any, dataBuffer: string }} response - parsed body and base64 raw body
- * @returns {Array<{ kind: 'pdf' | 'zpl', content: string }>} content is base64 for pdf, ZPL text for zpl
+ * @returns {Array<{ kind: 'pdf' | 'zpl' | 'image', content: string, mime?: string }>} content is base64 for pdf and
+ * image (with its mime type), ZPL text for zpl
  */
 export const detectLabels = ({ data, dataBuffer } = {}) => {
-  if (dataBuffer && detectContentTypeFromBase64(dataBuffer) === 'application/pdf') {
+  const bodyType = dataBuffer ? detectContentTypeFromBase64(dataBuffer) : null;
+  if (bodyType === 'application/pdf') {
     return [{ kind: 'pdf', content: dataBuffer }];
+  }
+  if (bodyType?.startsWith('image/')) {
+    return [];
   }
 
   const strings = [];

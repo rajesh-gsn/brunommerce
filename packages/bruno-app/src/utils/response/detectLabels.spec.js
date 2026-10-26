@@ -1,4 +1,4 @@
-import { detectLabels } from './detectLabels';
+import { detectLabels, LABEL_IMAGE_EXTENSIONS } from './detectLabels';
 
 const toBase64 = (str) => Buffer.from(str, 'latin1').toString('base64');
 const ZPL = '^XA^FO50,50^ADN,36,20^FDHello^FS^XZ';
@@ -114,6 +114,50 @@ describe('detectLabels', () => {
     expect(detectLabels({ data: { label: fiveMiB } })).toEqual([{ kind: 'zpl', content: fiveMiB }]);
     expect(detectLabels({ data: { label: tenMiB } })).toEqual([{ kind: 'zpl', content: tenMiB }]);
     expect(detectLabels({ data: { label: labelOfLength(10 * 1024 * 1024 + 1) } })).toEqual([]);
+  });
+
+  describe('embedded images', () => {
+    const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const JPEG_BASE64 = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01]).toString('base64');
+    const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>';
+
+    it('detects a base64 image in JSON, with its type', () => {
+      expect(detectLabels({ data: { qr: PNG_BASE64 } })).toEqual([{ kind: 'image', mime: 'image/png', content: PNG_BASE64 }]);
+      expect(detectLabels({ data: { photo: JPEG_BASE64 } })).toEqual([{ kind: 'image', mime: 'image/jpeg', content: JPEG_BASE64 }]);
+    });
+
+    it('detects a base64 image in an XML element', () => {
+      expect(detectLabels({ data: `<r><QrCode>${PNG_BASE64}</QrCode></r>` })).toEqual([{ kind: 'image', mime: 'image/png', content: PNG_BASE64 }]);
+    });
+
+    it('detects a data URL and drops its line breaks', () => {
+      expect(detectLabels({ data: { qr: `data:image/png;base64,${PNG_BASE64}` } })).toEqual([{ kind: 'image', mime: 'image/png', content: PNG_BASE64 }]);
+      expect(detectLabels({ data: { qr: `data:image/png;base64,${PNG_BASE64.slice(0, 20)}\n${PNG_BASE64.slice(20)}` } })[0].content).toBe(PNG_BASE64);
+    });
+
+    it('detects inline SVG markup in a JSON string and base64 SVG', () => {
+      const encoded = Buffer.from(SVG).toString('base64');
+      expect(detectLabels({ data: { qr: SVG } })).toEqual([{ kind: 'image', mime: 'image/svg+xml', content: encoded }]);
+      expect(detectLabels({ data: { qr: encoded } })).toEqual([{ kind: 'image', mime: 'image/svg+xml', content: encoded }]);
+    });
+
+    it('ignores image types a browser cannot show and data URLs of other types', () => {
+      const tiff = Buffer.from([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]).toString('base64');
+      expect(detectLabels({ data: { a: tiff, b: 'data:text/plain;base64,aGVsbG8gd29ybGQgaGVsbG8=' } })).toEqual([]);
+    });
+
+    it('leaves a response that is itself an image to the regular image preview', () => {
+      expect(detectLabels({ data: '', dataBuffer: PNG_BASE64 })).toEqual([]);
+    });
+
+    it('has a file extension for every detected type', () => {
+      expect(LABEL_IMAGE_EXTENSIONS['image/png']).toBe('png');
+      expect(LABEL_IMAGE_EXTENSIONS['image/svg+xml']).toBe('svg');
+    });
+
+    it('finds a label next to an image in the same response', () => {
+      expect(detectLabels({ data: { qr: PNG_BASE64, zpl: ZPL } }).map(({ kind }) => kind)).toEqual(['image', 'zpl']);
+    });
   });
 
   it('ignores ordinary XML', () => {
