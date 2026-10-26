@@ -24,6 +24,7 @@ const QueryResultPreview = ({
   previewMode,
   disableRunEventListener,
   displayedTheme,
+  onSelectionChange,
   docKey
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -63,6 +64,7 @@ const QueryResultPreview = ({
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
         onLinkClick={handleResponseLinkClick}
+        onSelectionChange={onSelectionChange}
         readOnly
       />
     );

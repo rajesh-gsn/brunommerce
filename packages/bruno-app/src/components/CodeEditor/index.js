@@ -122,6 +122,10 @@ const applyEditorProfile = (
 class CodeEditor extends React.Component {
   static contextType = SetAsVariableContext;
 
+  _onCursorActivity = (editor) => {
+    this.props.onSelectionChange?.(editor.getSelection());
+  };
+
   _onContextMenu = (editor, event) => {
     if (this.props.enableBrunoVarInfo === false) return;
 
@@ -310,6 +314,7 @@ class CodeEditor extends React.Component {
       editor.on('beforeChange', this._onBeforeChange);
       editor.on('change', this._onEdit);
       editor.on('contextmenu', this._onContextMenu);
+      editor.on('cursorActivity', this._onCursorActivity);
 
       // Persist view state immediately when the user folds or unfolds — without
       // this, a fold only gets saved on the next tab switch / unmount. That
@@ -612,6 +617,7 @@ class CodeEditor extends React.Component {
       this.editor.off('beforeChange', this._onBeforeChange);
       this.editor.off('change', this._onEdit);
       this.editor.off('contextmenu', this._onContextMenu);
+      this.editor.off('cursorActivity', this._onCursorActivity);
 
       // Tear down the debounced fold-persistence listener. Cancel any pending
       // call so it can't fire after we've already snapshotted state above.

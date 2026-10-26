@@ -1,14 +1,15 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconBarcode, IconClock } from '@tabler/icons';
+import { IconBarcode } from '@tabler/icons';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import LabelPane from './LabelPane';
 import ActionIcon from 'ui/ActionIcon';
 import { detectLabels } from 'utils/response/detectLabels';
-import { hasUtcTimestamps } from 'utils/response/localTime';
+import { hasTimestamps } from 'utils/response/timestamps';
+import TimeZoneBar from './TimeZoneBar';
 import { usePersistedState } from 'hooks/usePersistedState';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -57,12 +58,16 @@ const ResponsePane = ({ item, collection }) => {
   const [labelPaneOpen, setLabelPaneOpen] = usePersistedState({ key: `label-pane-open-${item.uid}`, default: false });
   const showLabelPane = labelPaneOpen && labels.length > 0;
 
-  const hasTimestamps = useMemo(
-    () => response.size <= RESPONSE_SCAN_MAX_SIZE && hasUtcTimestamps(response.data),
+  const containsTimestamps = useMemo(
+    () => response.size <= RESPONSE_SCAN_MAX_SIZE && hasTimestamps(response.data),
     [response.data, response.size]
   );
-  // One setting for every request: once local time is wanted it stays on
-  const [localTime, setLocalTime] = usePersistedState({ key: 'response-local-time', default: false });
+  const [selectedText, setSelectedText] = useState('');
+  // The code editor reports its own selection; text rendered as plain DOM (the preview tabs) is read here
+  const handleDomSelection = useCallback((event) => {
+    if (event.target.closest('.CodeMirror')) return;
+    setSelectedText(window.getSelection().toString());
+  }, []);
 
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -141,6 +146,7 @@ const ResponsePane = ({ item, collection }) => {
     }
   }, [response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+  const dateHeader = Object.entries(response.headers ?? {}).find(([name]) => name.toLowerCase() === 'date')?.[1];
 
   const allTabs = useMemo(() => {
     return [
@@ -196,7 +202,7 @@ const ResponsePane = ({ item, collection }) => {
             filterExpanded={focusedTab?.responseFilterExpanded}
             onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
             onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
-            localTime={localTime && hasTimestamps}
+            onSelectionChange={setSelectedText}
           />
         );
       }
@@ -256,6 +262,8 @@ const ResponsePane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
+  const showTimeZoneBar = !isLoading && isResponseTabActive && containsTimestamps && !(item.response?.stream ?? false);
+
   const alertsSection = !isLoading && isResponseTabActive ? (
     <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
   ) : null;
@@ -284,16 +292,6 @@ const ResponsePane = ({ item, collection }) => {
                 handleViewTabChange('editor');
               }}
             />
-            {hasTimestamps ? (
-              <ActionIcon
-                label={localTime ? 'Showing local time. Click to show times as sent' : 'Show UTC times in local timezone'}
-                variant={localTime ? 'filled' : 'subtle'}
-                onClick={() => setLocalTime(!localTime)}
-                data-testid="response-local-time-toggle"
-              >
-                <IconClock size={16} strokeWidth={2} />
-              </ActionIcon>
-            ) : null}
             {labels.length > 0 ? (
               <ActionIcon
                 label={showLabelPane ? 'Hide label preview' : 'Show label preview'}
@@ -363,6 +361,7 @@ const ResponsePane = ({ item, collection }) => {
           className={classnames('response-tab-content', { hidden: responsePaneErrors.isCardFullPane })}
           data-testid="response-tab-content"
           onContextMenu={(event) => setAsVariable.openFromDomSelection(event, { collection, item })}
+          onMouseUp={handleDomSelection}
         >
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
@@ -376,6 +375,7 @@ const ResponsePane = ({ item, collection }) => {
             <>{renderTabPanel()}</>
           )}
         </div>
+        {showTimeZoneBar ? <TimeZoneBar selectedText={selectedText} dateHeader={dateHeader} /> : null}
       </section>
     </StyledWrapper>
   );
