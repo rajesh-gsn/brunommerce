@@ -6,6 +6,59 @@
 
 **Brunommerce is an unofficial fork of [Bruno](https://github.com/usebruno/bruno)** with extra features for e-commerce and logistics APIs, such as previewing PDF and ZPL shipping labels next to the response. It is not made, endorsed or supported by the Bruno maintainers. "Bruno" is a trademark of its owner, and the original license (MIT, see [license.md](license.md)) and copyright notice are kept.
 
+## What Brunommerce adds
+
+Everything in Bruno still works, and your collections stay plain `.bru` / `.yml` files, so they open in either app. Brunommerce adds:
+
+### Label preview next to the response
+
+Carrier, warehouse and logistics APIs often return a shipping label as a PDF, as ZPL (Zebra printer language), or as base64 inside JSON or XML. When a response contains one, a barcode button appears next to the format selector and opens a pane beside the response.
+
+- **PDF labels**, direct, or base64 inside JSON or XML (for example a SOAP `<GraphicImage>` element).
+- **ZPL labels**, as plain text or base64, rendered to an image with size and DPI selectors. A response with several labels gets a pager.
+- **Images embedded in a response**, such as a QR code as a base64 PNG, a data URL or inline SVG.
+- **Download** the PDF, the ZPL source, the rendered image or the embedded image.
+
+**Privacy.** Rendering ZPL sends the label content, which often contains names and addresses, to a [Labelary](https://labelary.com)-compatible service. It is opt-in: the first render shows the endpoint and asks for permission, and consent is remembered for that endpoint only. PDF and image previews never use the network. To use your own Labelary server, set `preferences.labelary.endpoint` in `preferences.json` in the app's data folder (`~/Library/Application Support/Brunommerce` on macOS, `%APPDATA%\Brunommerce` on Windows).
+
+### Local time for timestamps
+
+When a response contains ISO-8601 timestamps with an offset (`2026-10-26T06:30:00Z`), a small purple chip after each one shows the same instant in your time zone, for example `26 Oct 12:00:00 +05:30 · 2h ago`. The chips are drawn beside the text, so the response, selection and copy keep the original values. The clock button next to the format selector hides or shows them.
+
+### Branding and side-by-side use
+
+A purple theme, a new name and icon, and its own data folder (`Brunommerce`), settings and `brunommerce://` URL scheme, so it runs next to an installed Bruno without sharing its settings or single-instance lock.
+
+## Install
+
+Download the latest **pre-release** from the [Releases page](https://github.com/rajesh-gsn/brunommerce/releases):
+
+- **macOS (Apple Silicon):** open the `.dmg` and drag Brunommerce to Applications, or unzip the `.zip`.
+- **Windows (64-bit):** run the `.exe` installer.
+
+The installers are not signed with an Apple or Microsoft certificate, so the first launch shows a warning:
+
+- **macOS:** open **System Settings → Privacy & Security** and click **Open Anyway**, or run `xattr -dr com.apple.quarantine /Applications/Brunommerce.app` once.
+- **Windows:** on "Windows protected your PC", click **More info → Run anyway**.
+
+Verify a download with `shasum -a 256 <file>` against `SHA256SUMS.txt` on the release. There is no automatic update, and Intel Macs are not supported by the current builds.
+
+## Build from source
+
+Brunommerce is built like Bruno (see [contributing.md](contributing.md)), on the `brand/brunommerce` branch. Prerequisites: Node 22, `npm i --legacy-peer-deps`, the shared packages built (`npm run build:bruno-common` and the other `build:*` scripts) and `npm run sandbox:bundle-libraries --workspace=packages/bruno-js`.
+
+```bash
+npm run dev                                   # run the app (use DISABLE_SINGLE_INSTANCE=true next to an installed Bruno)
+BRUNOMMERCE_VERSION=2.0.0-bm.4 ./scripts/build-brunommerce-mac.sh   # macOS installer (dmg + zip, arm64) in packages/bruno-electron/out
+git tag v2.0.0-bm.4 && git push origin v2.0.0-bm.4                  # builds the Windows installer on GitHub Actions
+```
+
+The Windows build runs in [`.github/workflows/build-brunommerce-windows.yml`](.github/workflows/build-brunommerce-windows.yml) when a `v*-bm.*` tag is pushed, and uploads the installer as a workflow artifact.
+
+## Upstream
+
+The label preview pane is also offered to Bruno as [usebruno/bruno#9608](https://github.com/usebruno/bruno/pull/9608). Brunommerce's branding, theme, timestamp chips, embedded-image preview and installers are specific to this fork.
+
 ---
 
 <br />
