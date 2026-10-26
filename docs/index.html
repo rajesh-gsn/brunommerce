@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brunommerce</title>
+  <meta name="description" content="An unofficial fork of the Bruno API client that previews PDF and ZPL shipping labels, QR codes and local timestamps right next to the response.">
+  <link rel="icon" type="image/png" href="brunommerce/favicon.png">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f3ff;
+      --surface-strong: #ece6ff;
+      --border: #e1d9f7;
+      --text: #1f1640;
+      --muted: #5d5680;
+      --primary: #6a3fd3;
+      --primary-strong: #5530b5;
+      --on-primary: #ffffff;
+      --shadow: 0 1px 2px rgba(42, 26, 94, 0.08), 0 8px 24px rgba(42, 26, 94, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #14102a;
+        --surface: #1c1738;
+        --surface-strong: #271f4d;
+        --border: #342b60;
+        --text: #f0ecff;
+        --muted: #b2a9d6;
+        --primary: #8d68f0;
+        --primary-strong: #a68af5;
+        --on-primary: #14102a;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--primary); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--primary-strong); }
+
+    .wrap { width: min(1100px, 100% - 32px); margin-inline: auto; }
+
+    /* Top bar */
+    header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+    header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 10px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; color: var(--text); text-decoration: none; }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    nav.links { display: flex; align-items: center; gap: 20px; }
+    nav.links a:not(.button) { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+    nav.links a:not(.button):hover { color: var(--text); }
+
+    .button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--primary); background: var(--primary); color: var(--on-primary); font-weight: 600; text-decoration: none; }
+    .button:hover { background: var(--primary-strong); border-color: var(--primary-strong); color: var(--on-primary); }
+    .button.secondary { background: transparent; color: var(--primary); }
+    .button.secondary:hover { background: var(--surface); color: var(--primary-strong); }
+
+    /* Hero */
+    .hero { padding-block: 56px 40px; text-align: center; background: radial-gradient(ellipse at 50% 0%, var(--surface-strong), transparent 65%); }
+    .hero img.mascot { width: min(200px, 50%); height: auto; filter: drop-shadow(0 10px 24px rgba(42, 26, 94, 0.25)); }
+    .hero .name { margin: 16px 0 0; color: var(--primary); font-size: 1rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .hero h1 { margin: 6px auto 12px; max-width: 18ch; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.12; letter-spacing: -0.02em; }
+    .hero p.lead { margin: 0 auto 24px; max-width: 60ch; color: var(--muted); font-size: 1.15rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .notice { display: inline-block; margin-top: 22px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 0.85rem; }
+
+    /* Sections */
+    section { padding-block: 56px; }
+    section h2 { margin: 0 0 12px; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.2; letter-spacing: -0.01em; }
+    section p.intro { margin: 0 0 8px; color: var(--muted); max-width: 62ch; }
+    .eyebrow { margin: 0 0 6px; color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .feature { display: grid; grid-template-columns: 1fr 1.25fr; gap: 40px; align-items: center; }
+    .feature.flip { grid-template-columns: 1.25fr 1fr; }
+    .feature.flip .copy { order: 2; }
+    .feature ul { margin: 16px 0 0; padding-left: 1.1rem; }
+    .feature li { margin-bottom: 6px; }
+
+    figure { margin: 0; }
+    figure img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+    figcaption { margin-top: 10px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; }
+
+    .band { background: var(--surface); border-block: 1px solid var(--border); }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 24px; }
+    .card { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+    .callout { padding: 20px 24px; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 12px; background: var(--surface); }
+    .callout h3 { margin: 0 0 6px; }
+    .callout p { margin: 0; color: var(--muted); }
+
+    code { padding: 2px 6px; border-radius: 6px; background: var(--surface-strong); font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { margin: 12px 0 0; padding: 14px 16px; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font: 0.85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre code { padding: 0; background: none; }
+
+    ol.steps { margin: 12px 0 0; padding-left: 1.2rem; }
+    ol.steps li { margin-bottom: 8px; }
+
+    footer { padding-block: 40px 56px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+    footer p { margin: 0 0 10px; max-width: 80ch; }
+
+    @media (max-width: 820px) {
+      .feature, .feature.flip { grid-template-columns: 1fr; gap: 24px; }
+      .feature.flip .copy { order: 0; }
+      .pair { grid-template-columns: 1fr; }
+      nav.links a.text-link { display: none; }
+      section { padding-block: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="brunommerce/icon.png" alt="" width="32" height="32">Brunommerce</a>
+      <nav class="links" aria-label="Main">
+        <a class="text-link" href="#labels">Labels</a>
+        <a class="text-link" href="#qr">QR &amp; images</a>
+        <a class="text-link" href="#time">Local time</a>
+        <a class="text-link" href="#install">Install</a>
+        <a class="button" href="#install">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="hero">
+      <div class="wrap">
+        <img class="mascot" src="brunommerce/mascot.png" alt="Brunommerce mascot: a chow chow in sunglasses and a purple hoodie leaning on a parcel" width="480" height="480">
+        <p class="name">Brunommerce</p>
+        <h1>See the shipping label right next to the response</h1>
+        <p class="lead">Brunommerce is an API client for e-commerce and logistics teams. Send a request and the PDF label, ZPL label or QR code in the response shows beside it, with timestamps in your own time zone.</p>
+        <div class="actions">
+          <a class="button" href="#install">Download</a>
+          <a class="button secondary" href="https://github.com/rajesh-gsn/brunommerce">View on GitHub</a>
+        </div>
+        <span class="notice">Unofficial fork of Bruno &middot; not made, endorsed or supported by the Bruno maintainers</span>
+      </div>
+    </div>
+
+    <section id="labels">
+      <div class="wrap feature">
+        <div class="copy">
+          <p class="eyebrow">Label preview</p>
+          <h2>Shipping labels, right beside the response</h2>
+          <p class="intro">Carrier and warehouse APIs return labels as a PDF, as ZPL (Zebra printer language), or as base64 inside JSON or XML. When a response has one, a barcode button opens the label next to it, so you stop copying base64 into other tools.</p>
+          <ul>
+            <li><strong>PDF labels</strong>, direct or base64 inside JSON or a SOAP <code>&lt;GraphicImage&gt;</code> element.</li>
+            <li><strong>ZPL labels</strong>, as plain text or base64, rendered with size and DPI choices.</li>
+            <li><strong>Several labels</strong> in one response, with a pager.</li>
+            <li><strong>Download</strong> the PDF, the ZPL source or the rendered image.</li>
+          </ul>
+        </div>
+        <figure>
+          <img src="brunommerce/label-zpl.png" alt="Brunommerce showing a ZPL response on the left and the rendered shipping label, with a Code 128 barcode and a QR code, on the right" width="1600" height="960" loading="lazy">
+          <figcaption>A ZPL label rendered next to the response: address, Code 128 barcode and QR code.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="qr" class="band">
+      <div class="wrap feature flip">
+        <div class="copy">
+          <p class="eyebrow">QR codes and images</p>
+          <h2>QR codes hidden inside a response</h2>
+          <p class="intro">Tracking APIs often return a QR code as a base64 image inside the JSON. Brunommerce finds it and shows it as an image you can scan or save.</p>
+          <ul>
+            <li>Base64 <strong>PNG, JPEG, GIF, WebP, AVIF, BMP and SVG</strong>.</li>
+            <li><strong>Data URLs</strong> and <strong>inline SVG</strong> markup.</li>
+            <li>In JSON strings or XML elements, saved back as the original file.</li>
+          </ul>
+        </div>
+        <figure>
+          <img src="brunommerce/label-qr.png" alt="Brunommerce showing a JSON response with a base64 QR code field and the decoded image of the QR code beside it" width="1600" height="960" loading="lazy">
+          <figcaption>The <code>qrCode</code> field of a JSON response, shown as an image.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="time">
+      <div class="wrap">
+        <p class="eyebrow">Local time</p>
+        <h2>Every timestamp, in your time zone</h2>
+        <p class="intro">A small purple chip after each ISO-8601 timestamp shows the same moment in your time zone and how long ago it was. The chips are drawn beside the text, so selecting and copying still gives the original values, and a clock button hides them.</p>
+        <div class="pair">
+          <figure>
+            <img src="brunommerce/chips-light.png" alt="A JSON response where each timestamp is followed by a purple chip showing the local time, in light mode" width="1600" height="960" loading="lazy">
+            <figcaption>Light theme</figcaption>
+          </figure>
+          <figure>
+            <img src="brunommerce/chips-dark.png" alt="The same response in dark mode, with purple local-time chips after the timestamps" width="1600" height="960" loading="lazy">
+            <figcaption>Dark theme</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <p class="eyebrow">Good to know</p>
+        <h2>Built on Bruno, kept separate</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>Same collections</h3>
+            <p>Collections stay plain <code>.bru</code> and <code>.yml</code> files, so they open in Bruno and in Brunommerce.</p>
+          </div>
+          <div class="card">
+            <h3>Runs next to Bruno</h3>
+            <p>Its own app name, data folder, settings and <code>brunommerce://</code> link scheme, so it never takes over an installed Bruno.</p>
+          </div>
+          <div class="card">
+            <h3>Purple theme</h3>
+            <p>A purple default theme for light and dark mode. Bruno's other themes are still there.</p>
+          </div>
+          <div class="card">
+            <h3>Open source</h3>
+            <p>MIT licensed, with the original copyright kept. The label pane is also offered to Bruno as <a href="https://github.com/usebruno/bruno/pull/9608">a pull request</a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap">
+        <div class="callout">
+          <h3>Your labels stay on your machine unless you say otherwise</h3>
+          <p>PDF and image previews never use the network. Rendering ZPL sends the label, which often contains names and addresses, to a <a href="https://labelary.com">Labelary</a>-compatible service. Brunommerce asks first, names the endpoint, and remembers your choice for that endpoint only. You can point it at your own Labelary server.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="band">
+      <div class="wrap">
+        <p class="eyebrow">Install</p>
+        <h2>Download Brunommerce</h2>
+        <p class="intro">Get the latest pre-release from the <a href="https://github.com/rajesh-gsn/brunommerce/releases">Releases page</a>. The installers are not signed with an Apple or Microsoft certificate, so the first launch shows a warning. It is expected, and these steps clear it.</p>
+        <div class="cards">
+          <div class="card">
+            <h3>macOS (Apple Silicon)</h3>
+            <ol class="steps">
+              <li>Open the <code>.dmg</code> and drag Brunommerce to Applications, or unzip the <code>.zip</code>.</li>
+              <li>If macOS blocks it, open <strong>System Settings &rarr; Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</li>
+              <li>Or run this once in Terminal:</li>
+            </ol>
+            <pre><code>xattr -dr com.apple.quarantine /Applications/Brunommerce.app</code></pre>
+          </div>
+          <div class="card">
+            <h3>Windows (64-bit)</h3>
+            <ol class="steps">
+              <li>Run the <code>.exe</code> installer.</li>
+              <li>On &ldquo;Windows protected your PC&rdquo;, click <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="intro" style="margin-top: 20px;">Check a download with <code>shasum -a 256 &lt;file&gt;</code> against <code>SHA256SUMS.txt</code> on the release. There are no automatic updates, and Intel Macs are not supported by the current builds. To build it yourself, see the <a href="https://github.com/rajesh-gsn/brunommerce#build-from-source">build instructions</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p><strong>Brunommerce is an unofficial fork of <a href="https://github.com/usebruno/bruno">Bruno</a>.</strong> It is not made, endorsed or supported by the Bruno maintainers. &ldquo;Bruno&rdquo; is a trademark of its owner.</p>
+      <p>Released under the MIT License. Based on Bruno, &copy; 2022 Anoop M D, Anusree P S and Contributors. The original license and copyright notice are kept in the <a href="https://github.com/rajesh-gsn/brunommerce/blob/brunommerce/license.md">source repository</a>.</p>
+      <p><a href="https://github.com/rajesh-gsn/brunommerce">Source on GitHub</a> &middot; <a href="https://github.com/rajesh-gsn/brunommerce/releases">Releases</a> &middot; <a href="https://github.com/usebruno/bruno">Original Bruno</a></p>
+    </div>
+  </footer>
+</body>
+</html>
