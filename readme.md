@@ -55,6 +55,15 @@ git tag v2.0.0-bm.4 && git push origin v2.0.0-bm.4                  # builds the
 
 The Windows build runs in [`.github/workflows/build-brunommerce-windows.yml`](.github/workflows/build-brunommerce-windows.yml) when a `v*-bm.*` tag is pushed, and uploads the installer as a workflow artifact.
 
+## Licenses and credits
+
+- **Bruno, MIT.** Brunommerce is based on [Bruno](https://github.com/usebruno/bruno), © 2022 Anoop M D, Anusree P S and Contributors, under the MIT License. The full text is in [license.md](license.md) and applies to Brunommerce's own changes too.
+- **License notices ship with the installers.** The app's resources contain a `legal` folder with `LICENSE-Bruno.md`, the Electron and Chromium notices (`LICENSE-Electron.txt`, `LICENSES.chromium.html`) and `THIRD_PARTY_NOTICES.txt`, which lists every open-source package in the app with its license text. The build scripts generate the last one with `node scripts/generate-third-party-notices.js`.
+- **Logo and mascot.** Created with ChatGPT (OpenAI image generation) by the project owner, and not based on Bruno's logo. See [assets/brand](assets/brand/README.md) for how it was made and where the files are.
+- **Bruno's logo is not used.** The Bruno logo is sourced from [OpenMoji](https://openmoji.org) (CC BY-SA 4.0); Brunommerce replaced it everywhere, including the run report, with its own.
+- **Label rendering** calls a [Labelary](https://labelary.com)-compatible service only with your permission, under that service's own terms.
+- **Trademark.** "Bruno" is a trademark of its owner (see [Trademark](#trademark)). Brunommerce is not made, endorsed or supported by the Bruno maintainers.
+
 ## Upstream
 
 The label preview pane is also offered to Bruno as [usebruno/bruno#9608](https://github.com/usebruno/bruno/pull/9608). Brunommerce's branding, theme, timestamp chips, embedded-image preview and installers are specific to this fork.
@@ -266,7 +275,7 @@ Please see [here](publishing.md) for more information.
 
 **Logo**
 
-The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+Bruno's logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Brunommerce does not use it; see [Licenses and credits](#licenses-and-credits).
 
 ## Contribute 👩‍💻🧑‍💻
 

@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 unset ELECTRON_RUN_AS_NODE
 
 npm run build --workspace=packages/bruno-app
+node scripts/generate-third-party-notices.js
 
 rm -rf packages/bruno-electron/out packages/bruno-electron/web
 mkdir packages/bruno-electron/web

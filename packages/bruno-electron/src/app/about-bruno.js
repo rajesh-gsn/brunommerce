@@ -66,6 +66,7 @@ module.exports = function aboutBruno({ version }) {
         <img src="data:image/png;base64,${logo}" width="100" alt="Brunommerce" />
       <h2 class="title">Brunommerce ${version}</h2>
       <div class="description">Unofficial fork of Bruno</div>
+      <div class="description">Open-source licenses: see the legal folder in the app's resources</div>
       <footer class="footer">
           Based on Bruno, ©2022 Anoop M D, Anusree P S and Contributors (MIT License)
       </footer>

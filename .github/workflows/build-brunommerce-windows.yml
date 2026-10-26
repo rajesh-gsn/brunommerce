@@ -34,6 +34,10 @@ jobs:
         shell: pwsh
         run: npm run build --workspace=packages/bruno-app
 
+      - name: Generate third-party notices
+        shell: pwsh
+        run: node scripts/generate-third-party-notices.js
+
       - name: Prepare web bundle for Electron
         shell: pwsh
         run: |
