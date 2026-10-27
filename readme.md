@@ -19,7 +19,7 @@ Carrier, warehouse and logistics APIs often return a shipping label as a PDF, as
 - **Images embedded in a response**, such as a QR code as a base64 PNG, a data URL or inline SVG.
 - **Download** the PDF, the ZPL source, the rendered image or the embedded image.
 
-**Privacy.** Rendering ZPL sends the label content, which often contains names and addresses, to a [Labelary](https://labelary.com)-compatible service. It is opt-in: the first render shows the endpoint and asks for permission, and consent is remembered for that endpoint only. PDF and image previews never use the network. To use your own Labelary server, set `preferences.labelary.endpoint` in `preferences.json` in the app's data folder (`~/Library/Application Support/Brunommerce` on macOS, `%APPDATA%\Brunommerce` on Windows).
+**Privacy.** See the full [privacy policy](PRIVACY.md). Rendering ZPL sends the label content, which often contains names and addresses, to a [Labelary](https://labelary.com)-compatible service. It is opt-in: the first render shows the endpoint and asks for permission, and consent is remembered for that endpoint only. PDF and image previews never use the network. To use your own Labelary server, set `preferences.labelary.endpoint` in `preferences.json` in the app's data folder (`~/Library/Application Support/Brunommerce` on macOS, `%APPDATA%\Brunommerce` on Windows).
 
 ### Local time for timestamps
 
